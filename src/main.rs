@@ -1,5 +1,6 @@
 use std::fs::{self, Metadata};
 use std::io::Write;
+use std::path::Path;
 
 struct CrustFile {
   pub extension_len: u8,
@@ -51,19 +52,30 @@ impl CrustFile{
   }
 
   pub fn extract_to(&self, path: &str) {
+    //create all necessary directories to write the file
+    if fs::create_dir_all(path).is_err() {
+      eprintln!("Error creating directory {}", path);
+      return;
+    }
+
+    //create our new file path
     let filename = path.to_string() + "/" + &self.filename;
 
+    //create file
     let mut file = fs::File::create(&filename);
     if file.is_err() {
       eprintln!("Error writing file {}", filename);
       return;
     }
+
+    //write file
     let mut file = file.unwrap();
     if file.write_all(self.file_data.as_slice()).is_err() {
       eprintln!("Error writing file {}", filename);
     }
   }
 }
+
 
 struct CrustPacked {
   identifier: String,
@@ -79,6 +91,6 @@ fn main() {
     println!("file data size: {}", test.data_len);
     println!("extension: {}", test.extension);
 
-    test.extract_to("test");
+    test.extract_to("test/thing/thing2");
   }
 }
