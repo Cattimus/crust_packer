@@ -1,4 +1,5 @@
 use std::fs::{self, Metadata};
+use std::io::Write;
 
 struct CrustFile {
   pub extension_len: u8,
@@ -12,7 +13,7 @@ struct CrustFile {
 impl CrustFile{
   pub fn from(filename: &str) -> Option<CrustFile> {
     //get metadata for file
-    let mut meta = fs::metadata(filename);
+    let meta = fs::metadata(filename);
     if meta.is_err() {
       return None;
     }
@@ -49,8 +50,18 @@ impl CrustFile{
     });
   }
 
-  pub fn extract_to(path: &str) {
+  pub fn extract_to(&self, path: &str) {
+    let filename = path.to_string() + "/" + &self.filename;
 
+    let mut file = fs::File::create(&filename);
+    if file.is_err() {
+      eprintln!("Error writing file {}", filename);
+      return;
+    }
+    let mut file = file.unwrap();
+    if file.write_all(self.file_data.as_slice()).is_err() {
+      eprintln!("Error writing file {}", filename);
+    }
   }
 }
 
@@ -61,12 +72,13 @@ struct CrustPacked {
 }
 
 fn main() {
-  let test = CrustFile::from("Cargo.toml");
+  let test = CrustFile::from("src/main.rs");
   if test.is_some() {
     let test = test.unwrap();
     println!("filename: {}", test.filename);
     println!("file data size: {}", test.data_len);
     println!("extension: {}", test.extension);
-    println!("file data:\n{}", String::from_utf8(test.file_data).unwrap());
+
+    test.extract_to("test");
   }
 }
