@@ -51,6 +51,39 @@ impl CrustFile{
     });
   }
 
+  //This needs to be updated to properly handle invalid states
+  pub fn from_bytes(data: &[u8]) -> Option<Self> {
+    let mut i: usize = 0;
+
+    let extension_len = data[i];
+    i += 1;
+
+    let name_len = u16::from_le_bytes(data[i..i+3].try_into().unwrap());
+    i += 2;
+
+    let data_len = u32::from_le_bytes(data[i..i+4].try_into().unwrap());
+    i += 4;
+
+    let filename = std::str::from_utf8(&data[i..i+name_len as usize]).unwrap().to_string();
+    i += name_len as usize;
+
+    let extension = std::str::from_utf8(&data[i..i+extension_len as usize]).unwrap().to_string();
+    i += extension_len as usize;
+
+    let file_data = data[i..i+extension_len as usize].to_vec();
+
+    return Some(
+      CrustFile {
+        extension_len,
+        name_len,
+        data_len,
+        filename,
+        extension,
+        file_data
+      }
+    );
+  }
+
   pub fn extract_to(&self, path: &str) {
     //create all necessary directories to write the file
     if fs::create_dir_all(path).is_err() {
