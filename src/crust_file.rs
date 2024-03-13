@@ -70,7 +70,7 @@ impl CrustFile{
     let extension = std::str::from_utf8(&data[i..i+extension_len as usize]).unwrap().to_string();
     i += extension_len as usize;
 
-    let file_data = data[i..i+extension_len as usize].to_vec();
+    let file_data = data[i..i+data_len as usize].to_vec();
 
     return Some(
       CrustFile {

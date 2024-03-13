@@ -7,6 +7,8 @@ fn main() {
   let test = test.unwrap();
 
   for file in &test.files {
-    println!("{}", file.filename);
+    println!("{}: {}, {}", file.filename, file.data_len, file.file_data.len());
   }
+
+  test.unpack_in("data");
 }

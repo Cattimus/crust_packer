@@ -123,6 +123,33 @@ impl CrustPacked {
     )
   }
 
+  //unpack files in specified directory
+  pub fn unpack_in(&self, path: &str) {
+    //check if path already exists
+    let desired_path = Path::new(path);
+    if desired_path.exists() && !desired_path.is_dir() {
+      eprintln!("Could not unpack files into {}, an object exists with this name that isn't a directory.", path);
+      return;
+    }
+
+    //attempt to create directory if it doesn't exist
+    if !desired_path.exists() {
+      if fs::create_dir(desired_path).is_err() {
+        eprintln!("Could not create directory: {}", path);
+        return;
+      }
+    }
+
+    //write files into directory
+    for i in 0..self.file_count {
+      let file = &self.files[i as usize];
+      let file_path = desired_path.join(&file.filename);
+      if fs::write(&file_path, &file.file_data.as_slice()).is_err() {
+        eprintln!("Error writing file: {}", &file_path.to_str().unwrap());
+      }
+    }
+  }
+
   //return new copy of self as a vec of u8
   pub fn as_bytes(&self) -> Vec<u8>{
     let mut buf: Vec<u8> = Vec::new();
