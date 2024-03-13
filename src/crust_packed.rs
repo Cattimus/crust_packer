@@ -1,4 +1,5 @@
 use std::fs;
+use std::path::Path;
 use std::io::Write;
 
 use crate::crust_file::*;
@@ -50,7 +51,12 @@ pub struct CrustPacked {
 }
 
 impl CrustPacked {
-  pub fn from_dir(path: &str) -> Self {
+  pub fn from_dir(path: &str) -> Option<Self> {
+    //directory does not exist
+    if !Path::new(path).exists() {
+      return None
+    }
+
     let filenames = get_filenames(path);
     let mut files: Vec<CrustFile> = Vec::new();
 
@@ -62,10 +68,16 @@ impl CrustPacked {
       }
     }
 
-    CrustPacked {
-      file_count: files.len() as u32,
-      files: files
-    }
+    return Some (
+      CrustPacked {
+        file_count: files.len() as u32,
+        files: files
+      })
+  }
+
+  //unpack a crust file into an object
+  pub fn unpack_file(path: &str) -> Option<Self> {
+
   }
 
   //return new copy of self as a vec of u8
