@@ -4,8 +4,9 @@ use crust_packed::*;
 
 fn main() {
   let test = CrustPacked::unpack_file("test.crust");
+  let test = test.unwrap();
 
-  if test.is_some() {
-    println!("It worked!");
+  for file in &test.files {
+    println!("{}", file.filename);
   }
 }

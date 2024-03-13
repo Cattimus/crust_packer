@@ -58,13 +58,13 @@ impl CrustFile{
     let extension_len = data[i];
     i += 1;
 
-    let name_len = u16::from_le_bytes(data[i..i+3].try_into().unwrap());
+    let name_len = u16::from_le_bytes(data[i..i+2].try_into().unwrap());
     i += 2;
 
     let data_len = u32::from_le_bytes(data[i..i+4].try_into().unwrap());
     i += 4;
 
-    let filename = std::str::from_utf8(&data[i..i+name_len as usize]).unwrap().to_string();
+    let filename = std::str::from_utf8(&data[i..i+name_len as usize]).unwrap().to_string();    
     i += name_len as usize;
 
     let extension = std::str::from_utf8(&data[i..i+extension_len as usize]).unwrap().to_string();

@@ -103,11 +103,22 @@ impl CrustPacked {
     }
 
     //create crust_file objects from bytes
+    let file_count = u32::from_le_bytes(file[5..9].try_into().unwrap());
+    println!("file count: {}", file_count);
+    let mut files: Vec<CrustFile> = Vec::new();
+
+    //iterate through files
+    let mut i: usize = 9;
+    for x in 0..file_count {
+      let obj = CrustFile::from_bytes(&file[i..]).unwrap();
+      i += 7 as usize + obj.extension_len as usize + obj.name_len as usize + obj.data_len as usize;
+      files.push(obj);
+    }
 
     return Some(
       CrustPacked {
-        file_count: 0,
-        files: Vec::new()
+        file_count,
+        files
       }
     )
   }
