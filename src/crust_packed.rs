@@ -78,22 +78,22 @@ impl CrustPacked {
   }
 
   //unpack a crust file into an object
-  pub fn unpack_file(path: &str) -> Option<Self> {
+  pub fn from_file(path: &str) -> Option<Self> {
     //check if file exists and isn't a directory
-    let mut file_descriptor = Path::new(path);
+    let file_descriptor = Path::new(path);
     if !file_descriptor.exists() || !file_descriptor.is_file() {
       return None;
     }
 
     //read file into memory
-    let mut file = fs::read(file_descriptor);
+    let file = fs::read(file_descriptor);
     if file.is_err() {
       eprintln!("Error opening file: {}", path);
       return None;
     }
 
     //check that crust header exists in file
-    let mut file = file.unwrap();
+    let file = file.unwrap();
     let header = "CRuST";
     let slice =& file[0..5];
 
@@ -109,7 +109,7 @@ impl CrustPacked {
 
     //iterate through files
     let mut i: usize = 9;
-    for x in 0..file_count {
+    for _ in 0..file_count {
       let obj = CrustFile::from_bytes(&file[i..]).unwrap();
       i += 7 as usize + obj.extension_len as usize + obj.name_len as usize + obj.data_len as usize;
       files.push(obj);

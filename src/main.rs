@@ -3,7 +3,7 @@ mod crust_packed;
 use crust_packed::*;
 
 fn main() {
-  let test = CrustPacked::unpack_file("test.crust");
+  let test = CrustPacked::from_file("test.crust");
   let test = test.unwrap();
 
   for file in &test.files {
