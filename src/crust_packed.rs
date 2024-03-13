@@ -4,6 +4,7 @@ use std::io::Write;
 
 use crate::crust_file::*;
 
+#[allow(dead_code)]
 pub fn get_filenames(path: &str) -> Vec<String>{
   //get a list of all files from the directory
   let mut dirs: Vec<String> = Vec::new();
@@ -50,6 +51,7 @@ pub struct CrustPacked {
   pub files: Vec<CrustFile>
 }
 
+#[allow(dead_code)]
 impl CrustPacked {
   pub fn from_dir(path: &str) -> Option<Self> {
     //directory does not exist
@@ -77,7 +79,37 @@ impl CrustPacked {
 
   //unpack a crust file into an object
   pub fn unpack_file(path: &str) -> Option<Self> {
+    //check if file exists and isn't a directory
+    let mut file_descriptor = Path::new(path);
+    if !file_descriptor.exists() || !file_descriptor.is_file() {
+      return None;
+    }
 
+    //read file into memory
+    let mut file = fs::read(file_descriptor);
+    if file.is_err() {
+      eprintln!("Error opening file: {}", path);
+      return None;
+    }
+
+    //check that crust header exists in file
+    let mut file = file.unwrap();
+    let header = "CRuST";
+    let slice =& file[0..5];
+
+    if !header.as_bytes().eq(slice) {
+      eprintln!("Crust header not found in file: {}", path);
+      return None;
+    }
+
+    //create crust_file objects from bytes
+
+    return Some(
+      CrustPacked {
+        file_count: 0,
+        files: Vec::new()
+      }
+    )
   }
 
   //return new copy of self as a vec of u8

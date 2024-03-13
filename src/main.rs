@@ -3,11 +3,9 @@ mod crust_packed;
 use crust_packed::*;
 
 fn main() {
-  let test = CrustPacked::from_dir("test");
+  let test = CrustPacked::unpack_file("test.crust");
 
-  for file in &test.files {
-    println!("{}", file.filename);
+  if test.is_some() {
+    println!("It worked!");
   }
-
-  test.write("test.crust")
 }
