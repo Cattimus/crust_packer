@@ -95,7 +95,7 @@ impl CrustPacked {
     let slice =& file[0..5];
 
     if !header.as_bytes().eq(slice) {
-      eprintln!("Crust header not found in file: {}", path);
+      eprintln!("CrustPacked.from_file(): Crust header not found in file {}", path);
       return None;
     }
 
@@ -113,7 +113,7 @@ impl CrustPacked {
         },
 
         None => {
-          eprintln!("Failure encountered during parsing of CRuST file. File may be invalid or corrupted.");
+          eprintln!("CrustPacked.from_file(): Failed to parse file. File may be invalid or corrupted.");
           return None;
         }
       }
@@ -132,14 +132,14 @@ impl CrustPacked {
     //check if path already exists
     let desired_path = Path::new(path);
     if desired_path.exists() && !desired_path.is_dir() {
-      eprintln!("Could not unpack files into {}, an object exists with this name that isn't a directory.", path);
+      eprintln!("CrustPacked.unpack_into(): An object already exists at {} that is not a directory.", path);
       return;
     }
 
     //attempt to create directory if it doesn't exist
     if !desired_path.exists() {
       if fs::create_dir(desired_path).is_err() {
-        eprintln!("Could not create directory: {}", path);
+        eprintln!("CrustPacked.unpack_into(): Could not create directory {}", path);
         return;
       }
     }
@@ -149,7 +149,7 @@ impl CrustPacked {
       let file = &self.files[i as usize];
       let file_path = desired_path.join(&file.filename);
       if fs::write(&file_path, &file.file_data.as_slice()).is_err() {
-        eprintln!("Error writing file: {}", &file_path.to_str().unwrap());
+        eprintln!("CrustPacked.unpack_into(): Error writing file {}", &file_path.to_str().unwrap());
       }
     }
   }
