@@ -124,7 +124,7 @@ impl CrustPacked {
   }
 
   //unpack files in specified directory
-  pub fn unpack_in(&self, path: &str) {
+  pub fn unpack_into(&self, path: &str) {
     //check if path already exists
     let desired_path = Path::new(path);
     if desired_path.exists() && !desired_path.is_dir() {

@@ -10,5 +10,5 @@ fn main() {
     println!("{}: {}, {}", file.filename, file.data_len, file.file_data.len());
   }
 
-  test.unpack_in("data");
+  test.unpack_into("data");
 }
