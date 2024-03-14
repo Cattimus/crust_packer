@@ -5,7 +5,7 @@ use std::io::Write;
 use crate::crust_file::*;
 
 #[allow(dead_code)]
-pub fn get_filenames(path: &str) -> Vec<String>{
+fn get_filenames(path: &str) -> Vec<String>{
   //get a list of all files from the directory
   let mut dirs: Vec<String> = Vec::new();
   dirs.push(path.to_string());
@@ -13,15 +13,14 @@ pub fn get_filenames(path: &str) -> Vec<String>{
 
   //iterate over directory
   while dirs.len() > 0 {
+    //This is fine and should never panic, since we check dirs.len() > 0 before this. keyword should.
     let current_dir = dirs.pop().unwrap();
 
-    let dir = fs::read_dir(&current_dir);
-    if dir.is_err() {
-      eprintln!("Error reading from directory: {}", &current_dir);
-      continue;
-    }
+    let dir = match fs::read_dir(&current_dir) {
+      Ok(d) => {d},
+      Err(_) => {eprintln!("CrustPacked.from_dir(): Error reading from directory {}", &current_dir); continue}
+    };
 
-    let dir = dir.unwrap();
     for file in dir {
       if file.is_err() {
         continue;
@@ -64,10 +63,10 @@ impl CrustPacked {
 
     //create objects for all the files
     for file in filenames {
-      let crust_file = CrustFile::from(&file);
-      if crust_file.is_some() {
-        files.push(crust_file.unwrap());
-      }
+      match CrustFile::from(&file) {
+        Some(d) => {files.push(d)},
+        None => {}
+      };
     }
 
     return Some (
@@ -86,14 +85,12 @@ impl CrustPacked {
     }
 
     //read file into memory
-    let file = fs::read(file_descriptor);
-    if file.is_err() {
-      eprintln!("Error opening file: {}", path);
-      return None;
-    }
+    let file = match fs::read(file_descriptor) {
+      Ok(d) => {d},
+      Err(_) => {eprintln!("CrustPacked.from_file(): Error opening file {}", path); return None}
+    };
 
     //check that crust header exists in file
-    let file = file.unwrap();
     let header = "CRuST";
     let slice =& file[0..5];
 
@@ -104,23 +101,22 @@ impl CrustPacked {
 
     //create crust_file objects from bytes
     let file_count = u32::from_le_bytes(file[5..9].try_into().unwrap());
-    println!("file count: {}", file_count);
     let mut files: Vec<CrustFile> = Vec::new();
 
     //iterate through files
     let mut i: usize = 9;
     for _ in 0..file_count {
-      let obj = CrustFile::from_bytes(&file[i..]);
+      match CrustFile::from_bytes(&file[i..]) {
+        Some(obj) => {
+          i += 7 as usize + obj.extension_len as usize + obj.name_len as usize + obj.data_len as usize;
+          files.push(obj);
+        },
 
-      //if the CrustFile fails to parse, then we abort reading file
-      if obj.is_none() {
-        eprintln!("Failure encountered during parsing of CRuST file. File may be invalid or corrupted.");
-        return None;
+        None => {
+          eprintln!("Failure encountered during parsing of CRuST file. File may be invalid or corrupted.");
+          return None;
+        }
       }
-
-      let obj = obj.unwrap();
-      i += 7 as usize + obj.extension_len as usize + obj.name_len as usize + obj.data_len as usize;
-      files.push(obj);
     }
 
     return Some(
@@ -178,16 +174,15 @@ impl CrustPacked {
   }
 
   pub fn write(&self, filename: &str) {
-    let file = fs::File::create(&filename);
-    if file.is_err() {
-      eprintln!("Error creating file: {}", &filename);
-      return;
-    }
+    let mut file = match fs::File::create(&filename) {
+      Ok(d) => {d},
+      Err(_) => {eprintln!("CrustPacked.write(): Error creating file {}", filename); return}
+    };
 
-    let error_msg = "Error writing to file: ".to_string() + filename;
-
-    let mut file = file.unwrap();
     let data = self.as_bytes();
-    file.write_all(&&data).expect(&error_msg);
+    match file.write_all(&&data) {
+      Ok(_) => {},
+      Err(_) => {eprintln!("CrustPacked.write(): Error writing to file {}", filename); return}
+    };
   }
 }
