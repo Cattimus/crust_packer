@@ -5,7 +5,7 @@ use std::io::Write;
 use crate::crust_file::*;
 
 #[allow(dead_code)]
-fn get_filenames(path: &str) -> Vec<String>{
+fn get_filenames(path: &str) -> Result<Vec<String>, String>{
   //get a list of all files from the directory
   let mut dirs: Vec<String> = Vec::new();
   dirs.push(path.to_string());
@@ -18,7 +18,7 @@ fn get_filenames(path: &str) -> Vec<String>{
 
     let dir = match fs::read_dir(&current_dir) {
       Ok(d) => {d},
-      Err(_) => {eprintln!("CrustPacked.from_dir(): Error reading from directory {}", &current_dir); continue}
+      Err(_) => {return Err(format!("Error reading directory {}", &current_dir))}
     };
 
     for file in dir {
@@ -42,7 +42,7 @@ fn get_filenames(path: &str) -> Vec<String>{
     }
   }
 
-  return files;
+  return Ok(files);
 }
 
 pub struct CrustPacked {
@@ -52,13 +52,16 @@ pub struct CrustPacked {
 
 #[allow(dead_code)]
 impl CrustPacked {
-  pub fn from_dir(path: &str) -> Option<Self> {
+  pub fn from_dir(path: &str) -> Result<Self, String> {
     //directory does not exist
     if !Path::new(path).exists() {
-      return None
+      return Err("Specified directory doesn't exist.".to_string());
     }
 
-    let filenames = get_filenames(path);
+    let filenames = match get_filenames(path) {
+      Ok(d) => {d},
+      Err(e) => {return Err(e)}
+    };
     let mut files: Vec<CrustFile> = Vec::new();
 
     //create objects for all the files
@@ -69,7 +72,7 @@ impl CrustPacked {
       };
     }
 
-    return Some (
+    return Ok(
       CrustPacked {
         file_count: files.len() as u32,
         files: files
@@ -77,17 +80,17 @@ impl CrustPacked {
   }
 
   //unpack a crust file into an object
-  pub fn from_file(path: &str) -> Option<Self> {
+  pub fn from_file(path: &str) -> Result<Self, String> {
     //check if file exists and isn't a directory
     let file_descriptor = Path::new(path);
     if !file_descriptor.exists() || !file_descriptor.is_file() {
-      return None;
+      return Err(format!("{} does not exist.", path));
     }
 
     //read file into memory
     let file = match fs::read(file_descriptor) {
       Ok(d) => {d},
-      Err(_) => {eprintln!("CrustPacked.from_file(): Error opening file {}", path); return None}
+      Err(_) => {return Err(format!("Error opening file {}", path));}
     };
 
     //check that crust header exists in file
@@ -95,8 +98,7 @@ impl CrustPacked {
     let slice =& file[0..5];
 
     if !header.as_bytes().eq(slice) {
-      eprintln!("CrustPacked.from_file(): Crust header not found in file {}", path);
-      return None;
+      return Err(format!("Crust header not found in file {}", path));
     }
 
     //create crust_file objects from bytes
@@ -107,19 +109,18 @@ impl CrustPacked {
     let mut i: usize = 9;
     for _ in 0..file_count {
       match CrustFile::from_bytes(&file[i..]) {
-        Some(obj) => {
+        Ok(obj) => {
           i += 7 as usize + obj.extension_len as usize + obj.name_len as usize + obj.data_len as usize;
           files.push(obj);
         },
 
-        None => {
-          eprintln!("CrustPacked.from_file(): Failed to parse file. File may be invalid or corrupted.");
-          return None;
+        Err(e) => {
+          return Err(format!("Failed to parse CrustFile at offset {}. CrustFile error: {}", i, e));
         }
       }
     }
 
-    return Some(
+    return Ok(
       CrustPacked {
         file_count,
         files
@@ -128,19 +129,17 @@ impl CrustPacked {
   }
 
   //unpack files in specified directory
-  pub fn unpack_into(&self, path: &str) {
+  pub fn unpack_into(&self, path: &str) -> Result<i32, String> {
     //check if path already exists
     let desired_path = Path::new(path);
     if desired_path.exists() && !desired_path.is_dir() {
-      eprintln!("CrustPacked.unpack_into(): An object already exists at {} that is not a directory.", path);
-      return;
+      return Err(format!("An object already exists at {} that is not a directory.", path));
     }
 
     //attempt to create directory if it doesn't exist
     if !desired_path.exists() {
       if fs::create_dir(desired_path).is_err() {
-        eprintln!("CrustPacked.unpack_into(): Could not create directory {}", path);
-        return;
+        return Err(format!("Could not create directory {}", path));
       }
     }
 
@@ -149,9 +148,11 @@ impl CrustPacked {
       let file = &self.files[i as usize];
       let file_path = desired_path.join(&file.filename);
       if fs::write(&file_path, &file.file_data.as_slice()).is_err() {
-        eprintln!("CrustPacked.unpack_into(): Error writing file {}", &file_path.to_str().unwrap());
+        return Err(format!("Could not write file {}", &file_path.to_str().unwrap()));
       }
     }
+
+    return Ok(0);
   }
 
   //return new copy of self as a vec of u8
@@ -173,16 +174,18 @@ impl CrustPacked {
     return buf;
   }
 
-  pub fn write(&self, filename: &str) {
+  pub fn write(&self, filename: &str) -> Result<i32, String>{
     let mut file = match fs::File::create(&filename) {
       Ok(d) => {d},
-      Err(_) => {eprintln!("CrustPacked.write(): Error creating file {}", filename); return}
+      Err(_) => {return Err(format!("Error creating file {}", filename))}
     };
 
     let data = self.as_bytes();
     match file.write_all(&&data) {
       Ok(_) => {},
-      Err(_) => {eprintln!("CrustPacked.write(): Error writing to file {}", filename); return}
+      Err(_) => {return Err(format!("Error writing to file {}", filename))}
     };
+
+    return Ok(0);
   }
 }
