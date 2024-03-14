@@ -26,7 +26,7 @@ impl CrustFile{
 
     let data = match fs::read(filename) {
       Ok(d) => {d},
-      Err(_) => {eprintln!("CrustFile: Error reading file {}", filename); return None}
+      Err(_) => {eprintln!("CrustFile.read(): Error reading file {}", filename); return None}
     };
 
     //get the file name from the file path provided
@@ -49,10 +49,10 @@ impl CrustFile{
   }
 
   //Create a crust file from a slice of bytes
-  pub fn from_bytes(data: &[u8]) -> Option<Self> {
+  pub fn from_bytes(data: &[u8]) -> Result<Self, &str> {
     //data must at least contain the header objects
     if data.len() < 7 {
-      return None;
+      return Err("Buffer does not contain enough data for basic header.");
     }
 
     let mut i: usize = 0;
@@ -68,24 +68,24 @@ impl CrustFile{
 
     //if there isn't enough data left in the buffer to read
     if data.len() < 7 + name_len as usize + extension_len as usize + data_len as usize {
-      return None;
+      return Err("Header may be corrupted or file may be invalid. Not enough bytes.");
     }
 
     let filename = match std::str::from_utf8(&data[i..i+name_len as usize]) {
       Ok(str) => {str.to_string()},
-      Err(_) => {eprintln!("CrustFile: error converting utf-8 string"); return None}
+      Err(_) => {return Err("Failed to convert filename into valid utf-8 string.")}
     };
     i += name_len as usize;
 
     let extension = match std::str::from_utf8(&data[i..i+extension_len as usize]) {
       Ok(str) => {str.to_string()},
-      Err(_) => {eprintln!("CrustFile: error converting utf-8 string"); return None}
+      Err(_) => {return Err("Failed to convert extension into valid utf-8 string.")}
     };
     i += extension_len as usize;
 
     let file_data = data[i..i+data_len as usize].to_vec();
 
-    return Some(
+    return Ok(
       CrustFile {
         extension_len,
         name_len,
@@ -97,11 +97,10 @@ impl CrustFile{
     );
   }
 
-  pub fn extract_to(&self, path: &str) {
+  pub fn extract_to(&self, path: &str) -> Result<i32, &str>{
     //create all necessary directories to write the file
     if fs::create_dir_all(path).is_err() {
-      eprintln!("Error creating directory {}", path);
-      return;
+      return Err(&format!("Could not create directory {}", path));
     }
 
     //create our new file path
@@ -110,13 +109,16 @@ impl CrustFile{
     //create file
     let mut file = match fs::File::create(&filename) {
       Ok(d) => {d},
-      Err(_) => {eprintln!("CrustFile: Error writing to file {}", filename); return}
+      Err(_) => {return Err(&format!("Could not write to file {}", filename))}
     };
 
     //write file
     if file.write_all(self.file_data.as_slice()).is_err() {
-      eprintln!("Error writing file {}", filename);
+      return Err(&format!("Could not write file {}", filename));
     }
+
+    //need this for result
+    return Ok(0);
   }
 
   //return a new copy of self as a vec of u8
