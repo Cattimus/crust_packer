@@ -66,9 +66,9 @@ impl CrustPacked {
 
     //create objects for all the files
     for file in filenames {
-      match CrustFile::from(&file) {
-        Some(d) => {files.push(d)},
-        None => {}
+      match CrustFile::from_file(&file) {
+        Ok(d) => {files.push(d)},
+        Err(_) => {}
       };
     }
 
