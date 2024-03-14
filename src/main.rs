@@ -14,6 +14,6 @@ fn main() {
 
   match test.unpack_into("data") {
     Ok(_) => {},
-    Err(e) => {eprintln!("{}", e)}
+    Err(e) => {eprintln!("Error unpacking CrustPacked: {}", e)}
   }
 }
