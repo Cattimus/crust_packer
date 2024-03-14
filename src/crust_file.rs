@@ -12,21 +12,21 @@ pub struct CrustFile {
 
 #[allow(dead_code)]
 impl CrustFile{
-  pub fn from(filename: &str) -> Option<CrustFile> {
+  pub fn from_file(filename: &str) -> Result<CrustFile, String> {
     //get metadata for file
     let meta = match fs::metadata(filename) {
       Ok(d) => {d},
-      Err(_) => {return None}
+      Err(_) => {return Err("Specified file does not exist.".to_string())}
     };
 
     //file is actually a directory
     if !meta.is_file() {
-      return None;
+      return Err("Specified file is a directory.".to_string());
     }
 
     let data = match fs::read(filename) {
       Ok(d) => {d},
-      Err(_) => {eprintln!("CrustFile.read(): Error reading file {}", filename); return None}
+      Err(_) => {return Err(format!("Error reading file {}", filename))}
     };
 
     //get the file name from the file path provided
@@ -38,7 +38,7 @@ impl CrustFile{
     let extension = filename.split(".").collect::<Vec<&str>>()[1].to_string();
 
     //now we have our file object
-    return Some(CrustFile {
+    return Ok(CrustFile {
       extension_len: extension.len() as u8,
       name_len: filename.len() as u16,
       data_len: data.len() as u32,
@@ -49,10 +49,10 @@ impl CrustFile{
   }
 
   //Create a crust file from a slice of bytes
-  pub fn from_bytes(data: &[u8]) -> Result<Self, &str> {
+  pub fn from_bytes(data: &[u8]) -> Result<Self, String> {
     //data must at least contain the header objects
     if data.len() < 7 {
-      return Err("Buffer does not contain enough data for basic header.");
+      return Err("Buffer does not contain enough data for basic header.".to_string());
     }
 
     let mut i: usize = 0;
@@ -68,18 +68,18 @@ impl CrustFile{
 
     //if there isn't enough data left in the buffer to read
     if data.len() < 7 + name_len as usize + extension_len as usize + data_len as usize {
-      return Err("Header may be corrupted or file may be invalid. Not enough bytes.");
+      return Err("Header may be corrupted or file may be invalid. Not enough bytes.".to_string());
     }
 
     let filename = match std::str::from_utf8(&data[i..i+name_len as usize]) {
       Ok(str) => {str.to_string()},
-      Err(_) => {return Err("Failed to convert filename into valid utf-8 string.")}
+      Err(_) => {return Err("Failed to convert filename into valid utf-8 string.".to_string())}
     };
     i += name_len as usize;
 
     let extension = match std::str::from_utf8(&data[i..i+extension_len as usize]) {
       Ok(str) => {str.to_string()},
-      Err(_) => {return Err("Failed to convert extension into valid utf-8 string.")}
+      Err(_) => {return Err("Failed to convert extension into valid utf-8 string.".to_string())}
     };
     i += extension_len as usize;
 
@@ -97,10 +97,10 @@ impl CrustFile{
     );
   }
 
-  pub fn extract_to(&self, path: &str) -> Result<i32, &str>{
+  pub fn extract_to(&self, path: &str) -> Result<i32, String>{
     //create all necessary directories to write the file
     if fs::create_dir_all(path).is_err() {
-      return Err(&format!("Could not create directory {}", path));
+      return Err(format!("Could not create directory {}", path));
     }
 
     //create our new file path
@@ -109,12 +109,12 @@ impl CrustFile{
     //create file
     let mut file = match fs::File::create(&filename) {
       Ok(d) => {d},
-      Err(_) => {return Err(&format!("Could not write to file {}", filename))}
+      Err(_) => {return Err(format!("Could not write to file {}", filename))}
     };
 
     //write file
     if file.write_all(self.file_data.as_slice()).is_err() {
-      return Err(&format!("Could not write file {}", filename));
+      return Err(format!("Could not write file {}", filename));
     }
 
     //need this for result
