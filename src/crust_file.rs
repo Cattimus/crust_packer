@@ -53,6 +53,11 @@ impl CrustFile{
 
   //This needs to be updated to properly handle invalid states
   pub fn from_bytes(data: &[u8]) -> Option<Self> {
+    //data must at least contain the header objects
+    if data.len() < 7 {
+      return None;
+    }
+
     let mut i: usize = 0;
 
     let extension_len = data[i];
@@ -64,10 +69,21 @@ impl CrustFile{
     let data_len = u32::from_le_bytes(data[i..i+4].try_into().unwrap());
     i += 4;
 
-    let filename = std::str::from_utf8(&data[i..i+name_len as usize]).unwrap().to_string();    
+    //if there isn't enough data left in the buffer to read
+    if data.len() < 7 + name_len as usize + extension_len as usize + data_len as usize {
+      return None;
+    }
+
+    let filename = match std::str::from_utf8(&data[i..i+name_len as usize]) {
+      Ok(str) => {str.to_string()},
+      Err(_) => {eprintln!("CrustFile: error converting utf-8 string"); return None}
+    };
     i += name_len as usize;
 
-    let extension = std::str::from_utf8(&data[i..i+extension_len as usize]).unwrap().to_string();
+    let extension = match std::str::from_utf8(&data[i..i+extension_len as usize]) {
+      Ok(str) => {str.to_string()},
+      Err(_) => {eprintln!("CrustFile: error converting utf-8 string"); return None}
+    };
     i += extension_len as usize;
 
     let file_data = data[i..i+data_len as usize].to_vec();
