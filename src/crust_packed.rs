@@ -110,7 +110,15 @@ impl CrustPacked {
     //iterate through files
     let mut i: usize = 9;
     for _ in 0..file_count {
-      let obj = CrustFile::from_bytes(&file[i..]).unwrap();
+      let obj = CrustFile::from_bytes(&file[i..]);
+
+      //if the CrustFile fails to parse, then we abort reading file
+      if obj.is_none() {
+        eprintln!("Failure encountered during parsing of CRuST file. File may be invalid or corrupted.");
+        return None;
+      }
+
+      let obj = obj.unwrap();
       i += 7 as usize + obj.extension_len as usize + obj.name_len as usize + obj.data_len as usize;
       files.push(obj);
     }

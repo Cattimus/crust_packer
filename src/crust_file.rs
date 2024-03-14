@@ -51,7 +51,7 @@ impl CrustFile{
     });
   }
 
-  //This needs to be updated to properly handle invalid states
+  //Create a crust file from a slice of bytes
   pub fn from_bytes(data: &[u8]) -> Option<Self> {
     //data must at least contain the header objects
     if data.len() < 7 {
