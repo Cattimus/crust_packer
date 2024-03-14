@@ -14,23 +14,20 @@ pub struct CrustFile {
 impl CrustFile{
   pub fn from(filename: &str) -> Option<CrustFile> {
     //get metadata for file
-    let meta = fs::metadata(filename);
-    if meta.is_err() {
-      return None;
-    }
+    let meta = match fs::metadata(filename) {
+      Ok(d) => {d},
+      Err(_) => {return None}
+    };
 
     //file is actually a directory
-    let meta = meta.unwrap();
     if !meta.is_file() {
       return None;
     }
 
-    let data = fs::read(filename);
-    if data.is_err() {
-      eprintln!("Error reading file: {}", filename);
-      return None;
-    }
-    let data = data.unwrap();
+    let data = match fs::read(filename) {
+      Ok(d) => {d},
+      Err(_) => {eprintln!("CrustFile: Error reading file {}", filename); return None}
+    };
 
     //get the file name from the file path provided
     let filename = filename.replace("\\", "/");
@@ -111,14 +108,12 @@ impl CrustFile{
     let filename = path.to_string() + "/" + &self.filename;
 
     //create file
-    let file = fs::File::create(&filename);
-    if file.is_err() {
-      eprintln!("Error writing file {}", filename);
-      return;
-    }
+    let mut file = match fs::File::create(&filename) {
+      Ok(d) => {d},
+      Err(_) => {eprintln!("CrustFile: Error writing to file {}", filename); return}
+    };
 
     //write file
-    let mut file = file.unwrap();
     if file.write_all(self.file_data.as_slice()).is_err() {
       eprintln!("Error writing file {}", filename);
     }
